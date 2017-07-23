@@ -123,7 +123,7 @@ async def on_message(message):
                 r=http.request(
                         'POST',
                         'https://api.thetvdb.com/login?apikey=',
-                        fields={'apikey':'484941B035F1AD86'})
+                        fields={'apikey':''})
                 print (r.data)
                 await client.send_message(message.channel, r.data)
 
