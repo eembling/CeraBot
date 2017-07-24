@@ -122,6 +122,8 @@ async def on_message(message):
                 #print(sickbeard_search)
                 sickbeard_search_list = sickbeard_search['data']['results']
                 print(sickbeard_search_list)
+                sickbeard_name_value = sickbeard_search_list[0]['name']
+                print(sickbeard_name_value)
                 await client.send_message(message.channel, sickbeard_search_list)
 
 
