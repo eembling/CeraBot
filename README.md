@@ -2,7 +2,26 @@
 Discord Bot for Plex/SickBeard
 
 User config input:
+######Global Settings#######################################################
+#Plex
+plex_username = ''
+plex_password = ''
+plex_servername = ''
+plex_movies = ''
+plex_tv = ''
 
+#Discord
+client_code = ''
+game_list = []
+
+
+#TVDB.com
+tvdb_code = ''
+
+#SickBeard
+sickbeard_url = ''
+sickbeard_api = ''
+#############################################################################
 
 Commands:
 %help - Outputs the commands
