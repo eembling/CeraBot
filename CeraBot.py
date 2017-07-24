@@ -86,7 +86,7 @@ async def on_message(message):
         #Commands
         # %help command
         if re.match('^\%help', content):
-                await client.send_message(message.channel, "##### Help for CeraBot #####\n\n%help - Outputs the commands\n\n%movie (text) - Allows for search of movies in Plex\n\n%tv (text) Allows for search of tv shows in Plex\n\n%shows - List shows currently being downloaded by SickBeard\n\n%request - Pulls in Request for TV Shows(BROKEN)")
+                await client.send_message(message.channel, "##### Help for CeraBot #####\n%help - Outputs the commands\n%movie (text) - Allows for search of movies in Plex\n%tv (text) Allows for search of tv shows in Plex\n%shows - List shows currently being downloaded by SickBeard\n%sickbeard - Outputs the total stats for Sickbeard\n%sbping - Pings the Sickbeard server\n%request - Pulls in Request for TV Shows(BROKEN)")
 
         # %shows command
         elif re.match('^\%shows', content):
@@ -111,21 +111,45 @@ async def on_message(message):
         elif re.match('(^%request\s)(.*)', content):
                 request_value_regex =  re.match('(^%request\s)(.*)', content)
                 request_value = request_value_regex.group(2)
-                await client.send_message(message.channel, request_value)
+                await client.send_message(message.channel,"Your search: %s" % (request_value))
                 result = db.search(request_value, 'en')
                 show = result[0]
-                await client.send_message(message.channel, show)
-                #print (request.content)
+                await client.send_message(message.channel,"Closest Show: %s" %(show.SeriesName))
+                show_proper = show.SeriesName
+                #print(show.SeriesName)
+
+                sickbeard_search = requests.get('https://'+sickbeard_url+'/api/'+sickbeard_api+'/?cmd=sb.searchtvdb&name='+show_proper+'&lang=en', verify=False).json()
+                #print(sickbeard_search)
+                sickbeard_search_list = sickbeard_search['data']['results']
+                print(sickbeard_search_list)
+                await client.send_message(message.channel, sickbeard_search_list)
+
+
+                #test_dict = (" ".join(sickbeard_search_list))
+                #print(test_dict)
+
+                #tvdbid_search = (sickbeard_search['data']['results']['tvdbid'])
+                #print (tvdbid_search)
+
+
+
                 #show_id = requests.get('https://api.thetvdb.com/search?name=request_value')
                 #await client.send_message(message.channel, show_id)
                 #print (show_id)
 
-                r=http.request(
-                        'POST',
-                        'https://api.thetvdb.com/login?apikey=',
-                        fields={'apikey':''})
-                print (r.data)
-                await client.send_message(message.channel, r.data)
+                #r=http.request(
+                #       'POST',
+                #       'https://api.thetvdb.com/login?apikey=',
+                #       fields={'apikey':''})
+                #print (r.data)
+                #await client.send_message(message.channel, r.data)
+
+                #tvdbtoken = requests.get('https://api.thetvdb.com/login?apikey=')
+                #await client.send_message(message.channel, tvdbtoken)
+                #print (tvdbtoken)
+                #request = requests.get('https://172.16.1.42:8081/api//?cmd=show&tvdbid=79349', verify=False)
+                #await client.send_message(message.channel, request.content)
+                #print (request.content)
 
         #%Movie Search commmand
         elif re.match('(^%movie\s)(.*)', content):
@@ -134,10 +158,15 @@ async def on_message(message):
                 #print(movie_value)
                 movies = plex.library.section(plex_movies)
                 Output_movie_list = list()
-                for video in movies.search(movie_value):
-                        movie_list =('%s(%s)' % (video.title, video.TYPE))
-                        Output_movie_list.append(movie_list)
-                await client.send_message(message.channel,"\n".join(Output_movie_list))
+                #Test to see if the Movie exists
+                try:
+                        for video in movies.search(movie_value):
+                                movie_list =('%s(%s)' % (video.title, video.TYPE))
+                                Output_movie_list.append(movie_list)
+                        await client.send_message(message.channel,"\n".join(Output_movie_list))
+                #Output if the Movie doesnt exist
+                except:
+                        await client.send_message(message.channel,"No Movie found")
 
         #%TV Show Search commmand
         elif re.match('(^%tv\s)(.*)', content):
@@ -146,9 +175,39 @@ async def on_message(message):
                 #print(tv_value)
                 tv = plex.library.section(plex_tv)
                 Output_tv_list = list()
-                for video in tv.search(tv_value):
-                        tv_list =('%s(%s)' % (video.title, video.TYPE))
-                        Output_tv_list.append(tv_list)
-                await client.send_message(message.channel,"\n".join(Output_tv_list))
+                #test to see if the Tv Show exists
+                try:
+                        for video in tv.search(tv_value):
+                                tv_list =('%s(%s)' % (video.title, video.TYPE))
+                                Output_tv_list.append(tv_list)
+                        await client.send_message(message.channel,"\n".join(Output_tv_list))
+                #Output if the TV Show doesnt exist
+                except:
+                        await client.send_message(message.channel,"No TV Show found")
+
+        #%sickbeard statistics
+        if re.match('^\%sickbeard', content):
+                sickbeard = requests.get('https://'+sickbeard_url+'/api/'+sickbeard_api+'/?cmd=shows.stats', verify=False).json()
+                sickbeard_ep_downloaded = sickbeard['data']['ep_downloaded']
+                sickbeard_ep_snatched = sickbeard['data']['ep_snatched']
+                sickbeard_ep_total = sickbeard['data']['ep_total']
+                sickbeard_shows_active = sickbeard['data']['shows_active']
+                sickbeard_shows_total = sickbeard['data']['shows_total']
+                sickbeard_list = [sickbeard_ep_downloaded,
+                                  sickbeard_ep_snatched,
+                                  sickbeard_ep_total,
+                                  sickbeard_shows_active,
+                                  sickbeard_shows_total]
+
+                await client.send_message(message.channel,"##### Sickbeard Statistics#####\nEpisodes downloaded: %s\nEpisodes snatched: %s\nEpisode Total: %s\nShows active: %s\nShows Total: %s" % (sickbeard_ep_downloaded, sickbeard_ep_snatched, sickbeard_ep_total, sickbeard_shows_active, sickbeard_shows_total))
+
+        #%sickbeard ping
+        if re.match('^\%sbping', content):
+                sickbeard_ping = requests.get('https://'+sickbeard_url+'/api/'+sickbeard_api+'/?cmd=sb.ping', verify=False).json()
+                sickbeard_ping_response = sickbeard_ping['message']
+                print(sickbeard_ping_response)
+                await client.send_message(message.channel,"Sickbeard responds with %s" % (sickbeard_ping_response))
+
+
 
 client.run(client_code)
