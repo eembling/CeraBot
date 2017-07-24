@@ -147,7 +147,7 @@ async def on_message(message):
                 #tvdbtoken = requests.get('https://api.thetvdb.com/login?apikey=')
                 #await client.send_message(message.channel, tvdbtoken)
                 #print (tvdbtoken)
-                #request = requests.get('https://172.16.1.42:8081/api//?cmd=show&tvdbid=79349', verify=False)
+                #request = requests.get('https:///api//?cmd=show&tvdbid=79349', verify=False)
                 #await client.send_message(message.channel, request.content)
                 #print (request.content)
 
