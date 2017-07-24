@@ -2,7 +2,7 @@
 Discord Bot for Plex/SickBeard
 
 User config input:
-######Global Settings#######################################################
+######Global Settings#######################################################\n
 #Plex
 plex_username = ''
 plex_password = ''
