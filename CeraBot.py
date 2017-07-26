@@ -7,11 +7,14 @@ from pytvdbapi import api
 import urllib3
 import json
 from plexapi.myplex import MyPlexAccount
-
+import sqlite3
 
 ######Global Settings#######################################################
+#Admin User
+admin_account = ''
+
 #Plex
-plex_username = ''
+plex_username = '
 plex_password = ''
 plex_servername = ''
 plex_movies = ''
@@ -27,7 +30,8 @@ tvdb_code = ''
 
 #SickBeard
 sickbeard_url = ''
-sickbeard_api = ''
+sickbeard_api = 'c'
+
 #############################################################################
 
 #Connect to Plex Server
@@ -37,6 +41,14 @@ plex = account.resource(plex_servername).connect()
 #Connect to TVDB API
 db = api.TVDB(tvdb_code)
 http = urllib3.PoolManager()
+
+#Connect to the sqlite3 database
+conn = sqlite3.connect('request.db')
+c = conn.cursor()
+
+#Create the Table
+c.execute('''CREATE TABLE IF NOT EXISTS requests
+                (request text, tvdbid text)''')
 
 #Global Variables
 message_count = 0
@@ -106,52 +118,71 @@ async def on_message(message):
                         Output_list.append(show_list)
                 await client.send_message(message.channel,"\n".join(Output_list))
 
-
         # %request command
         elif re.match('(^%request\s)(.*)', content):
                 request_value_regex =  re.match('(^%request\s)(.*)', content)
+
+                #Read in value from chat
                 request_value = request_value_regex.group(2)
                 await client.send_message(message.channel,"Your search: %s" % (request_value))
+
+                # Search TVDB for closest match
                 result = db.search(request_value, 'en')
                 show = result[0]
                 await client.send_message(message.channel,"Closest Show: %s" %(show.SeriesName))
+
+                #Validated name to be pulled in to match a show
                 show_proper = show.SeriesName
-                #print(show.SeriesName)
 
+                #Search Sickbeard for the TVDBID of the show
                 sickbeard_search = requests.get('https://'+sickbeard_url+'/api/'+sickbeard_api+'/?cmd=sb.searchtvdb&name='+show_proper+'&lang=en', verify=False).json()
-                #print(sickbeard_search)
                 sickbeard_search_list = sickbeard_search['data']['results']
-                print(sickbeard_search_list)
-                sickbeard_name_value = sickbeard_search_list[0]['name']
-                print(sickbeard_name_value)
-                await client.send_message(message.channel, sickbeard_search_list)
+                sickbeard_tvdbid_value = sickbeard_search_list[0]['tvdbid']
 
+                print(request_value)
+                print(show_proper)
+                print(sickbeard_tvdbid_value)
 
-                #test_dict = (" ".join(sickbeard_search_list))
-                #print(test_dict)
+                c.execute("INSERT INTO requests VALUES (?,?) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM requests WHERE tvdbid = ?)", (show_proper, sickbeard_tvdbid_value, sickbeard_tvdbid_value, sickbeard_tvdbid_value))
+                conn.commit()
 
-                #tvdbid_search = (sickbeard_search['data']['results']['tvdbid'])
-                #print (tvdbid_search)
+                for row in c.execute('SELECT * FROM requests'):
+                        print(row)
+                await client.send_message(message.channel," Show: %s" %(show.SeriesName))
+        # %addshow command
+        elif re.match('(^%addshow\s)(.*)', content) and str(user) == admin_account:
+                request_value_regex =  re.match('(^%addshow\s)(.*)', content)
 
+                #Read in value from chat
+                request_value = request_value_regex.group(2)
+                await client.send_message(message.channel,"Your search: %s" % (request_value))
 
+                # Search TVDB for closest match
+                result = db.search(request_value, 'en')
+                show = result[0]
+                await client.send_message(message.channel,"Closest Show: %s" %(show.SeriesName))
 
-                #show_id = requests.get('https://api.thetvdb.com/search?name=request_value')
-                #await client.send_message(message.channel, show_id)
-                #print (show_id)
+                #Validated name to be pulled in to match a show
+                show_proper = show.SeriesName
 
-                #r=http.request(
-                #       'POST',
-                #       'https://api.thetvdb.com/login?apikey=',
-                #       fields={'apikey':''})
-                #print (r.data)
-                #await client.send_message(message.channel, r.data)
+                #Search Sickbeard for the TVDBID of the show
+                sickbeard_search = requests.get('https://'+sickbeard_url+'/api/'+sickbeard_api+'/?cmd=sb.searchtvdb&name='+show_proper+'&lang=en', verify=False).json()
+                sickbeard_search_list = sickbeard_search['data']['results']
+                sickbeard_tvdbid_value = sickbeard_search_list[0]['tvdbid']
 
-                #tvdbtoken = requests.get('https://api.thetvdb.com/login?apikey=')
-                #await client.send_message(message.channel, tvdbtoken)
-                #print (tvdbtoken)
-                #request = requests.get('https:///api//?cmd=show&tvdbid=79349', verify=False)
-                #await client.send_message(message.channel, request.content)
-                #print (request.content)
+                #Print the TVDBID incase end user needs to compare
+                await client.send_message(message.channel, "TVDBID: %s" % (sickbeard_tvdbid_value))
+
+                #Request to add the show to Sickbeard
+                request_tvdbid_search = requests.get('https://'+sickbeard_url+'/api/'+sickbeard_api+'/?cmd=show.addnew&tvdbid='+str(sickbeard_tvdbid_value)+'&lang=en', verify=False).json()
+                add_show_list = request_tvdbid_search['message']
+
+                #Send back reply if the show is added/or previously added
+                await client.send_message(message.channel, add_show_list)
+
+        #Addshow from non-admin user
+        elif re.match('^\%addshow\s', content):
+                await client.send_message(message.channel, "You cannot request a show")
 
         #%Movie Search commmand
         elif re.match('(^%movie\s)(.*)', content):
@@ -169,6 +200,7 @@ async def on_message(message):
                 #Output if the Movie doesnt exist
                 except:
                         await client.send_message(message.channel,"No Movie found")
+
 
         #%TV Show Search commmand
         elif re.match('(^%tv\s)(.*)', content):
