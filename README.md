@@ -1,6 +1,6 @@
 # CeraBot
 
-### Installation
+## Installation
   Required libraries
   
   Discord : https://github.com/Rapptz/discord.py
@@ -9,8 +9,7 @@
   
   TVDB: https://github.com/fuzzycode/pytvdbapi
 
-### User config input:
-
+## User config input:
 ######Global Settings#######################################################
 #Plex
 
@@ -29,7 +28,6 @@ plex_tv = ''
 client_code = ''
 
 game_list = []
-
 
 #TVDB.com
 
