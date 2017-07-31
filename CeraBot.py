@@ -4,10 +4,10 @@ import random
 import re
 import requests
 from pytvdbapi import api
-import urllib3
 import json
 from plexapi.myplex import MyPlexAccount
 import sqlite3
+import logging
 
 ######Global Settings#######################################################
 #Admin User
@@ -38,7 +38,6 @@ plex = account.resource(plex_servername).connect()
 
 #Connect to TVDB API
 db = api.TVDB(tvdb_code)
-http = urllib3.PoolManager()
 
 #Connect to the sqlite3 database
 conn = sqlite3.connect('request.db')
@@ -47,6 +46,9 @@ c = conn.cursor()
 #Create the sqlite3 Table
 c.execute('''CREATE TABLE IF NOT EXISTS requests
                 (request text, tvdbid text)''')
+
+#Define Logging
+logging.basicConfig( filename='bot.log', level=logging.INFO)
 
 #Global Variables
 message_count = 0
@@ -61,10 +63,15 @@ client.change_presence(game=game1)
 @client.event
 async def on_ready():
         print('Logged in as')
+        logging.info('Logged in as')
         print(client.user.name)
+        logging.info('%s', client.user.name)
         print(client.user.id)
+        logging.info('%s', client.user.id)
         print(game1.name)
+        logging.info('%s', game1.name)
         print('-------------------')
+        logging.info('-------------------')
         await client.change_presence(game=game1)
 
 #Listen to messages
@@ -94,10 +101,12 @@ async def on_message(message):
         #Commands
         # %help command
         if re.match('^\%help', content):
+                logging.info('%s requests help', str(user))
                 await client.send_message(message.channel, "##### Help for CeraBot #####\n%help - Outputs the commands\n%movie (text) - Allows for search of movies in Plex\n%tv (text) Allows for search of tv shows in Plex\n%shows - List shows currently being downloaded by SickBeard\n%sickbeard - Outputs the total stats for Sickbeard\n%sbping - Pings the Sickbeard server\n%request (text)- Pulls in Request for TV Shows adds it to the list\n%requestlist - Lists the shows and TVDBIDs of requested shows\n%requestdelete (tvdbid) - This will delete the tvdbid from the list\n%addshow (text) - Adds the show to Sickbeard")
 
         # %shows command
         elif re.match('^\%shows', content):
+                logging.info('%s lists shows being downloaded in SickBeard', str(user))
                 #Pull in JSON entry for all shows (3d Dict)
                 shows = requests.get('https://'+sickbeard_url+'/api/'+sickbeard_api+'/?cmd=shows&sort=name', verify=False).json()
                 show_list = shows['data']
@@ -119,6 +128,7 @@ async def on_message(message):
 
                 #Read in value from chat
                 request_value = request_value_regex.group(2)
+                logging.info('%s is requesting %s', str(user), request_value)
                 await client.send_message(message.channel,"Your search: %s" % (request_value))
 
                 # Search TVDB for closest match
@@ -143,6 +153,7 @@ async def on_message(message):
 
         # %requestlist
         elif re.match('^\%requestlist', content):
+                logging.info('%s requests for the list of shows to be downloaded', str(user))
 
                 #Query the DB for the shows
                 for row in c.execute('SELECT * FROM requests'):
@@ -152,6 +163,7 @@ async def on_message(message):
         elif re.match('^\%requestdelete', content) and str(user) == admin_account:
                 tvdbid_input =  re.match('(^%requestdelete\s)(.*)', content)
                 tvdbid = tvdbid_input.group(2)
+                logging.info('%s is deleting show: %s', str(user), tvdbid)
 
                 #Delete from the Database
                 c.execute('DELETE FROM requests WHERE tvdbid=?', (tvdbid,))
@@ -162,9 +174,11 @@ async def on_message(message):
         elif re.match('(^%addshow\s)(.*)', content) and str(user) == admin_account:
                 request_value_regex =  re.match('(^%addshow\s)(.*)', content)
 
+
                 #Read in value from chat
                 request_value = request_value_regex.group(2)
                 await client.send_message(message.channel,"Your search: %s" % (request_value))
+                logging.info('%s is adding show %s', str(user), request_value)
 
                 # Search TVDB for closest match
                 result = db.search(request_value, 'en')
@@ -192,11 +206,13 @@ async def on_message(message):
         #Addshow from non-admin user
         elif re.match('^\%addshow\s', content):
                 await client.send_message(message.channel, "You cannot request a show")
+                logging.info('%s requested to add a show but is not an Admin', str(user))
 
         #%Movie Search commmand
         elif re.match('(^%movie\s)(.*)', content):
                 movie_value_regex =  re.match('(^%movie\s)(.*)', content)
                 movie_value = movie_value_regex.group(2)
+                logging.info('%s is searching for Movie: %s', str(user), movie_value)
                 movies = plex.library.section(plex_movies)
                 Output_movie_list = list()
 
@@ -215,6 +231,7 @@ async def on_message(message):
         elif re.match('(^%tv\s)(.*)', content):
                 tv_value_regex =  re.match('(^%tv\s)(.*)', content)
                 tv_value = tv_value_regex.group(2)
+                logging.info('%s is searching for TV Show: %s', str(user), tv_value)
                 tv = plex.library.section(plex_tv)
                 Output_tv_list = list()
 
