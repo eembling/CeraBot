@@ -11,6 +11,7 @@
 
 ## User config input:
 ######Global Settings#######################################################
+
 #Plex
 
 plex_username = ''
