@@ -1,6 +1,6 @@
-## CeraBot
+# CeraBot
 
-# Installation
+### Installation
   Required libraries
   
   Discord : https://github.com/Rapptz/discord.py
@@ -9,7 +9,7 @@
   
   TVDB: https://github.com/fuzzycode/pytvdbapi
 
-# User config input:
+### User config input:
 
 ######Global Settings#######################################################
 #Plex
