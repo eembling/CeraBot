@@ -2,8 +2,11 @@
 
 # Installation
   Required libraries
+  
   Discord : https://github.com/Rapptz/discord.py
+  
   Plex: https://github.com/pkkid/python-plexapi or https://pypi.python.org/pypi/PlexAPI/2.0.2
+  
   TVDB: https://github.com/fuzzycode/pytvdbapi
 
 # User config input:
