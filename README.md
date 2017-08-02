@@ -1,7 +1,7 @@
 # CeraBot
 
 ## Installation
-  Required libraries
+  ###Required libraries
   
   Discord : https://github.com/Rapptz/discord.py
   
@@ -9,7 +9,7 @@
   
   TVDB: https://github.com/fuzzycode/pytvdbapi
   
-  Required Accounts:
+  ###Required Accounts:
   
   TVDB.com for API Key
 
