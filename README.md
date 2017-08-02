@@ -8,7 +8,12 @@
   Plex: https://github.com/pkkid/python-plexapi or https://pypi.python.org/pypi/PlexAPI/2.0.2
   
   TVDB: https://github.com/fuzzycode/pytvdbapi
+  
+  Required Accounts:
+  
+  TVDB.com for API Key
 
+  
 ## User config input:
 ######Global Settings#######################################################
 
