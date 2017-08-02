@@ -45,7 +45,11 @@ c = conn.cursor()
 
 #Create the sqlite3 Table
 c.execute('''CREATE TABLE IF NOT EXISTS requests
-                (request text, tvdbid text)''')
+                (request text not null, tvdbid integer not null)''')
+
+#Create a constraint so dupes cannot be added
+c.execute('''CREATE unique index IF NOT EXISTS request_tvdbid on requests (request, tvdbid)''')
+
 
 #Define Logging
 logging.basicConfig( filename='bot.log', level=logging.INFO)
@@ -144,12 +148,18 @@ async def on_message(message):
                 sickbeard_search_list = sickbeard_search['data']['results']
                 sickbeard_tvdbid_value = sickbeard_search_list[0]['tvdbid']
 
-                # Add the request into the Database
-                c.execute("INSERT INTO requests VALUES (?,?)", (show_proper, sickbeard_tvdbid_value))
-                conn.commit()
+                # Try command to see if the value is a dupe
+                try:
+                        #Add the request into the Database
+                        c.execute("INSERT INTO requests VALUES (?,?)", (show_proper, sickbeard_tvdbid_value))
+                        conn.commit()
 
-                # Output the requested show
-                await client.send_message(message.channel," Show Requested: %s" %(show.SeriesName))
+                        # Output the requested show
+                        await client.send_message(message.channel," Show %s added to the requested list" %(show.SeriesName))
+
+                #If dupe is attempted to be added print
+                except:
+                        await client.send_message(message.channel, "That show has already been requested")
 
         # %requestlist
         elif re.match('^\%requestlist', content):
@@ -165,15 +175,25 @@ async def on_message(message):
                 tvdbid = tvdbid_input.group(2)
                 logging.info('%s is deleting show: %s', str(user), tvdbid)
 
-                #Delete from the Database
-                c.execute('DELETE FROM requests WHERE tvdbid=?', (tvdbid,))
-                conn.commit()
-                await client.send_message(message.channel,"The show with TVDBID of %s has been removed" % (tvdbid))
+                #Find if the show is in the list currently
+                empty_value_test = c.execute('SELECT tvdbid FROM requests WHERE tvdbid=?', (tvdbid,))
+
+                #Returns a empty list if the show isnt added
+                empty_test = c.fetchall()
+
+                #Tests if the show is added
+                if not empty_test:
+                        await client.send_message(message.channel,"The show with TVDBID of %s is not in the request list" % (tvdbid))
+
+                else:
+                        #Delete from the Database
+                        c.execute('DELETE FROM requests WHERE tvdbid=?', (tvdbid,))
+                        conn.commit()
+                        await client.send_message(message.channel,"The show with TVDBID of %s has been removed" % (tvdbid))
 
         # %addshow command
         elif re.match('(^%addshow\s)(.*)', content) and str(user) == admin_account:
                 request_value_regex =  re.match('(^%addshow\s)(.*)', content)
-
 
                 #Read in value from chat
                 request_value = request_value_regex.group(2)
@@ -241,6 +261,7 @@ async def on_message(message):
                                 tv_list =('%s(%s)' % (video.title, video.TYPE))
                                 Output_tv_list.append(tv_list)
                         await client.send_message(message.channel,"\n".join(Output_tv_list))
+
                 #Output if the TV Show doesnt exist
                 except:
                         await client.send_message(message.channel,"No TV Show found")
